@@ -91,10 +91,11 @@ INLINE_ACTYPE_KEYBOARD = {
     "inline_keyboard": [
         [
             {"text": "💵 Efectivo", "callback_data": "actype:efectivo"},
-            {"text": "🏦 Banco / Corriente", "callback_data": "actype:banco"}
+            {"text": "💳 Débito", "callback_data": "actype:debito"}
         ],
         [
-            {"text": "💳 Tarjeta de Crédito", "callback_data": "actype:tarjeta"}
+            {"text": "💳 Tarjeta de Crédito", "callback_data": "actype:tarjeta_credito"},
+            {"text": "🏦 Ahorros", "callback_data": "actype:ahorros"}
         ],
         [
             {"text": "❌ Cancelar Registro", "callback_data": "actype:cancel"}
@@ -111,6 +112,15 @@ INLINE_ACCURR_KEYBOARD = {
         ],
         [
             {"text": "❌ Cancelar Registro", "callback_data": "accurr:cancel"}
+        ]
+    ]
+}
+
+# Menú inline para volver al inicio ante errores o cancelaciones
+INLINE_ERROR_KEYBOARD = {
+    "inline_keyboard": [
+        [
+            {"text": "🔙 Volver al Inicio", "callback_data": "menu_back_start"}
         ]
     ]
 }
@@ -192,7 +202,7 @@ async def telegram_webhook(request: Request):
 
         if callback_data == "reg_type:cancel":
             USER_STATES.pop(chat_id, None)
-            await edit_telegram_message(chat_id, message_id, "❌ *Registro cancelado.*")
+            await edit_telegram_message(chat_id, message_id, "❌ *Registro cancelado.*", reply_markup=INLINE_ERROR_KEYBOARD)
             return {"status": "ok"}
 
         if callback_data in ["menu_resumen", "menu_config"]:
@@ -236,8 +246,9 @@ async def telegram_webhook(request: Request):
             else:
                 type_icons = {
                     "efectivo": "💵 Efectivo",
-                    "banco": "🏦 Banco / Corriente",
-                    "tarjeta": "💳 Tarjeta de Crédito"
+                    "debito": "💳 Débito",
+                    "tarjeta_credito": "💳 Tarjeta de Crédito",
+                    "ahorros": "🏦 Ahorros"
                 }
                 for acc in accounts:
                     name = acc["name"]
@@ -278,12 +289,12 @@ async def telegram_webhook(request: Request):
             actype = callback_data.split(":")[1]
             if actype == "cancel":
                 USER_STATES.pop(chat_id, None)
-                await edit_telegram_message(chat_id, message_id, "❌ *Creación de cuenta cancelada.*")
+                await edit_telegram_message(chat_id, message_id, "❌ *Creación de cuenta cancelada.*", reply_markup=INLINE_ERROR_KEYBOARD)
                 return {"status": "ok"}
             
             user_state = USER_STATES.get(chat_id)
             if not user_state or user_state.get("state") != "AWAITING_ACCOUNT_TYPE":
-                await edit_telegram_message(chat_id, message_id, "⚠️ Sesión expirada.")
+                await edit_telegram_message(chat_id, message_id, "⚠️ Sesión expirada.", reply_markup=INLINE_ERROR_KEYBOARD)
                 return {"status": "ok"}
             
             user_state["type"] = actype
@@ -301,12 +312,12 @@ async def telegram_webhook(request: Request):
             accurr = callback_data.split(":")[1]
             if accurr == "cancel":
                 USER_STATES.pop(chat_id, None)
-                await edit_telegram_message(chat_id, message_id, "❌ *Creación de cuenta cancelada.*")
+                await edit_telegram_message(chat_id, message_id, "❌ *Creación de cuenta cancelada.*", reply_markup=INLINE_ERROR_KEYBOARD)
                 return {"status": "ok"}
             
             user_state = USER_STATES.get(chat_id)
             if not user_state or user_state.get("state") != "AWAITING_ACCOUNT_CURRENCY":
-                await edit_telegram_message(chat_id, message_id, "⚠️ Sesión expirada.")
+                await edit_telegram_message(chat_id, message_id, "⚠️ Sesión expirada.", reply_markup=INLINE_ERROR_KEYBOARD)
                 return {"status": "ok"}
             
             user_state["currency"] = accurr
@@ -345,14 +356,14 @@ async def telegram_webhook(request: Request):
 
         if callback_data == "confirm_type:cancel":
             USER_STATES.pop(chat_id, None)
-            await edit_telegram_message(chat_id, message_id, "❌ *Registro cancelado.*")
+            await edit_telegram_message(chat_id, message_id, "❌ *Registro cancelado.*", reply_markup=INLINE_ERROR_KEYBOARD)
             return {"status": "ok"}
 
         if callback_data.startswith("confirm_type:"):
             tx_type = callback_data.split(":")[1]
             user_state = USER_STATES.get(chat_id)
             if not user_state or user_state.get("state") != "CONFIRMING_PARSED_TX":
-                await edit_telegram_message(chat_id, message_id, "⚠️ *Error:* Sesión de confirmación expirada.")
+                await edit_telegram_message(chat_id, message_id, "⚠️ *Error:* Sesión de confirmación expirada.", reply_markup=INLINE_ERROR_KEYBOARD)
                 return {"status": "ok"}
 
             amount = user_state["amount"]
@@ -376,7 +387,8 @@ async def telegram_webhook(request: Request):
                 await edit_telegram_message(
                     chat_id,
                     message_id,
-                    "⚠️ Hubo un problema al guardar la transacción en la base de datos. Por favor, intenta de nuevo."
+                    "⚠️ Hubo un problema al guardar la transacción en la base de datos. Por favor, intenta de nuevo.",
+                    reply_markup=INLINE_ERROR_KEYBOARD
                 )
                 USER_STATES.pop(chat_id, None)
                 return {"status": "ok"}
@@ -436,7 +448,11 @@ async def telegram_webhook(request: Request):
                 last_name=last_name
             )
             if not user_uuid:
-                await send_telegram_message(chat_id, "❌ Error crítico al registrar tu usuario automáticamente.")
+                await send_telegram_message(
+                    chat_id, 
+                    "❌ Error crítico al registrar tu usuario automáticamente.",
+                    reply_markup=INLINE_ERROR_KEYBOARD
+                )
                 return {"status": "ok"}
             is_new_user = True
 
@@ -505,8 +521,9 @@ async def telegram_webhook(request: Request):
             else:
                 type_icons = {
                     "efectivo": "💵 Efectivo",
-                    "banco": "🏦 Banco / Corriente",
-                    "tarjeta": "💳 Tarjeta de Crédito"
+                    "debito": "💳 Débito",
+                    "tarjeta_credito": "💳 Tarjeta de Crédito",
+                    "ahorros": "🏦 Ahorros"
                 }
                 for acc in accounts:
                     name = acc["name"]
@@ -583,7 +600,8 @@ async def telegram_webhook(request: Request):
                 except ValueError:
                     await send_telegram_message(
                         chat_id,
-                        "⚠️ *Monto inválido.* Por favor, ingresa solo números positivos (ejemplo: `25.50` o `120`):"
+                        "⚠️ *Monto inválido.* Por favor, ingresa solo números positivos (ejemplo: `25.50` o `120`):",
+                        reply_markup=INLINE_ERROR_KEYBOARD
                     )
                     return {"status": "ok"}
 
@@ -626,7 +644,7 @@ async def telegram_webhook(request: Request):
                     await send_telegram_message(
                         chat_id,
                         "⚠️ Hubo un problema al guardar la transacción en la base de datos. Por favor, intenta de nuevo.",
-                        reply_markup=REPLY_KEYBOARD
+                        reply_markup=INLINE_ERROR_KEYBOARD
                     )
                     USER_STATES.pop(chat_id, None)
                     return {"status": "ok"}
@@ -692,7 +710,8 @@ async def telegram_webhook(request: Request):
                 except ValueError:
                     await send_telegram_message(
                         chat_id,
-                        "⚠️ *Saldo inválido.* Por favor, ingresa solo números (ejemplo: `0` o `150.50`):"
+                        "⚠️ *Saldo inválido.* Por favor, ingresa solo números (ejemplo: `0` o `150.50`):",
+                        reply_markup=INLINE_ERROR_KEYBOARD
                     )
                     return {"status": "ok"}
                 
@@ -717,7 +736,7 @@ async def telegram_webhook(request: Request):
                     await send_telegram_message(
                         chat_id,
                         "⚠️ Hubo un problema al crear la cuenta en la base de datos. Por favor, intenta de nuevo.",
-                        reply_markup=REPLY_KEYBOARD
+                        reply_markup=INLINE_ERROR_KEYBOARD
                     )
                     USER_STATES.pop(chat_id, None)
                     return {"status": "ok"}
@@ -728,8 +747,9 @@ async def telegram_webhook(request: Request):
                 # Mapeo a etiqueta amigable
                 type_labels = {
                     "efectivo": "💵 Efectivo",
-                    "banco": "🏦 Banco / Corriente",
-                    "tarjeta": "💳 Tarjeta de Crédito"
+                    "debito": "💳 Débito",
+                    "tarjeta_credito": "💳 Tarjeta de Crédito",
+                    "ahorros": "🏦 Ahorros"
                 }
                 type_label = type_labels.get(actype, actype.capitalize())
                 curr_symbol = "S/" if currency == "PEN" else "$"
@@ -806,7 +826,11 @@ async def telegram_webhook(request: Request):
 
     except Exception as e:
         print(f"Error general: {e}")
-        await send_telegram_message(chat_id, "❌ Hubo un error interno al procesar tu solicitud.")
+        await send_telegram_message(
+            chat_id, 
+            "❌ Hubo un error interno al procesar tu solicitud.",
+            reply_markup=INLINE_ERROR_KEYBOARD
+        )
 
     return {"status": "ok"}
 

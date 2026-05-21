@@ -6,7 +6,7 @@ load_dotenv()
 
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 WEBHOOK_SECRET = os.environ.get("TELEGRAM_WEBHOOK_SECRET")
-PUBLIC_URL = "https://financebot-backend-n034.onrender.com/"
+PUBLIC_URL = "https://financebot-backend-n034.onrender.com"
 
 webhook_url = f"{PUBLIC_URL}/webhook"
 telegram_api = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/setWebhook"

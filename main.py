@@ -253,9 +253,9 @@ async def finish_transaction_registration(chat_id: int, user_uuid: str, user_sta
         )
         
         if message_id:
-            await edit_telegram_message(chat_id, message_id, mensaje_exito)
+            await edit_telegram_message(chat_id, message_id, mensaje_exito, reply_markup=INLINE_ERROR_KEYBOARD)
         else:
-            await send_telegram_message(chat_id, mensaje_exito, reply_markup=REPLY_KEYBOARD)
+            await send_telegram_message(chat_id, mensaje_exito, reply_markup=INLINE_ERROR_KEYBOARD)
             
     except Exception as db_err:
         print(f"Error al registrar transaccion: {db_err}")
@@ -1384,7 +1384,7 @@ async def telegram_webhook(request: Request):
                     f"¡Gracias! Ya puedes usar esta cuenta para tus transacciones."
                 )
                 
-                await send_telegram_message(chat_id, mensaje_exito, reply_markup=REPLY_KEYBOARD)
+                await send_telegram_message(chat_id, mensaje_exito, reply_markup=INLINE_ERROR_KEYBOARD)
                 return {"status": "ok"}
 
             elif state == "AWAITING_EDIT_ACCOUNT_NAME":
@@ -1396,7 +1396,7 @@ async def telegram_webhook(request: Request):
                     await send_telegram_message(
                         chat_id,
                         f"✅ *¡Nombre de Cuenta Actualizado!*\n\nEl nombre ha sido cambiado a: *{new_name}*",
-                        reply_markup=REPLY_KEYBOARD
+                        reply_markup=INLINE_ERROR_KEYBOARD
                     )
                 except Exception as err:
                     print(f"Error al actualizar nombre de cuenta: {err}")
@@ -1484,7 +1484,7 @@ async def telegram_webhook(request: Request):
                         f"▪️ *Monto:* {sym} {amount:.2f}\n\n"
                         f"¡Gracias! Esta deuda ya figura en tu sistema de control."
                     )
-                    await send_telegram_message(chat_id, mensaje_exito, reply_markup=REPLY_KEYBOARD)
+                    await send_telegram_message(chat_id, mensaje_exito, reply_markup=INLINE_ERROR_KEYBOARD)
                 except Exception as db_err:
                     print(f"Error al guardar deuda: {db_err}")
                     await send_telegram_message(chat_id, "❌ Error al guardar la deuda en la base de datos.", reply_markup=REPLY_KEYBOARD)

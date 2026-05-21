@@ -1,0 +1,30 @@
+# Estado global en memoria para registrar el flujo interactivo de los usuarios
+USER_STATES = {}
+
+# Agrupaciones semánticas de estados para enrutamiento limpio
+ACCOUNT_STATES = {
+    "AWAITING_ACCOUNT_NAME",
+    "AWAITING_ACCOUNT_TYPE",
+    "AWAITING_ACCOUNT_CURRENCY",
+    "AWAITING_ACCOUNT_BALANCE",
+    "AWAITING_EDIT_ACCOUNT_NAME",
+    "AWAITING_EDIT_ACCOUNT_TYPE"
+}
+
+DEBT_STATES = {
+    "AWAITING_DEBT_DESC",
+    "AWAITING_DEBT_TYPE",
+    "AWAITING_DEBT_CURRENCY",
+    "AWAITING_DEBT_AMOUNT"
+}
+
+TRANSACTION_STATES = {
+    "CONFIRMING_PARSED_TX",
+    "AWAITING_TYPE",
+    "AWAITING_AMOUNT",
+    "AWAITING_CONCEPT",
+    "AWAITING_TX_ACCOUNT",
+    "AWAITING_TX_DATE",
+    "AWAITING_TX_CUSTOM_DATE",
+    "AWAITING_TX_DEBT"
+}

@@ -15,7 +15,8 @@ Tu tarea es extraer la información y devolver ÚNICAMENTE un objeto JSON válid
   "type": "gasto" | "ingreso" | "transferencia",
   "amount": número decimal (solo el número, positivo),
   "concept": "breve descripción del gasto/ingreso",
-  "currency": "PEN" | "USD"
+  "currency": "PEN" | "USD",
+  "date": "YYYY-MM-DD" o null si no se menciona específicamente una fecha (ej. si dice 'ayer', calcula la fecha de ayer; si dice 'el 12 de mayo', calcula esa fecha en el año actual; de lo contrario null)
 }
 Si falta información, infiérela lógicamente (ej. si dice 'menú', es gasto en PEN).
 """

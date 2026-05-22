@@ -244,6 +244,63 @@ async def handle_resumen_menu(chat_id: int, user_uuid: str, edit_mode: bool = Fa
     if bal_usd > 0 or any(a["currency"] == "USD" for a in accounts):
         gross_str += f"  |  $ {bal_usd:.2f}"
         
+    # Obtener y calcular deudas para la comparativa
+    debts = get_user_debts(user_uuid)
+    debts_pay_pen = 0.0
+    debts_pay_usd = 0.0
+    debts_collect_pen = 0.0
+    debts_collect_usd = 0.0
+    
+    for d in debts:
+        if d.get("status") == "pendiente":
+            curr = d.get("currency") or "PEN"
+            rem = float(d.get("remaining_amount") or 0.0)
+            dtype = d.get("type")
+            
+            if dtype == "por_pagar":
+                if curr == "PEN":
+                    debts_pay_pen += rem
+                else:
+                    debts_pay_usd += rem
+            elif dtype == "por_cobrar":
+                if curr == "PEN":
+                    debts_collect_pen += rem
+                else:
+                    debts_collect_usd += rem
+                    
+    net_worth_pen = bal_pen - debts_pay_pen + debts_collect_pen
+    net_worth_usd = bal_usd - debts_pay_usd + debts_collect_usd
+    
+    has_debts = (debts_pay_pen > 0 or debts_pay_usd > 0 or debts_collect_pen > 0 or debts_collect_usd > 0)
+    has_usd = (bal_usd > 0 or debts_pay_usd > 0 or debts_collect_usd > 0 or any(a["currency"] == "USD" for a in accounts))
+    
+    debt_compare_str = ""
+    if has_debts:
+        debt_compare_str = (
+            f"💸 *Comparativa con Deudas:*\n"
+            f"▪️ Tú debes (Por Pagar): S/ {debts_pay_pen:.2f}"
+        )
+        if has_usd:
+            debt_compare_str += f" | $ {debts_pay_usd:.2f}"
+        debt_compare_str += f"\n▪️ Te deben (Por Cobrar): S/ {debts_collect_pen:.2f}"
+        if has_usd:
+            debt_compare_str += f" | $ {debts_collect_usd:.2f}"
+            
+        debt_compare_str += f"\n👉 *Saldo Neto Ajustado (Bruto - Debes + Cobras):*\n"
+        debt_compare_str += f"   *S/ {net_worth_pen:.2f}*"
+        if has_usd:
+            debt_compare_str += f"  |  *$ {net_worth_usd:.2f}*"
+        debt_compare_str += "\n\n"
+    else:
+        debt_compare_str = (
+            f"💸 *Comparativa con Deudas:*\n"
+            f"▪️ Sin deudas pendientes 🎉\n"
+            f"👉 *Saldo Neto Ajustado:* *S/ {net_worth_pen:.2f}*"
+        )
+        if has_usd:
+            debt_compare_str += f"  |  *$ {net_worth_usd:.2f}*"
+        debt_compare_str += "\n\n"
+        
     inc_pen = 0.0
     inc_usd = 0.0
     exp_pen = 0.0
@@ -281,6 +338,8 @@ async def handle_resumen_menu(chat_id: int, user_uuid: str, edit_mode: bool = Fa
         f"-----------------------------------\n"
         f"💰 *Saldo Bruto Total (Suma de Cuentas):*\n"
         f"👉 *{gross_str}*\n\n"
+        f"{debt_compare_str}"
+        f"-----------------------------------\n"
         f"📈 *Estadísticas de este Mes:*\n"
         f"📥 *Ingresos:* S/ {inc_pen:.2f} | $ {inc_usd:.2f}\n"
         f"📤 *Gastos:* S/ {exp_pen:.2f} | $ {exp_usd:.2f}\n"
